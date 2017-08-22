@@ -113,10 +113,12 @@ namespace Utility.CommandLine
         /// </summary>
         /// <param name="shortName">The short name of the argument, represented as a single character.</param>
         /// <param name="longName">The long name of the argument.</param>
-        public ArgumentAttribute(char shortName, string longName)
+        /// <param name="helpText">The help text of the argument.</param>
+        public ArgumentAttribute(char shortName, string longName, string helpText = null)
         {
             ShortName = shortName;
             LongName = longName;
+            HelpText = helpText;
         }
 
         #endregion Public Constructors
@@ -132,6 +134,11 @@ namespace Utility.CommandLine
         ///     Gets or sets the short name of the argument.
         /// </summary>
         public char ShortName { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the help text of the argument.
+        /// </summary>
+        public string HelpText { get; set; }
 
         #endregion Public Properties
     }
@@ -269,6 +276,35 @@ namespace Utility.CommandLine
             }
 
             return new Arguments(argumentDictionary, operandList);
+        }
+
+        /// <summary>
+        /// Get the help of arguments.
+        /// </summary>
+        /// <param name="type">Type where the help arguments are.</param>
+        /// <returns>Return the list of help arguments.</returns>
+        public static Dictionary<string, PropertyInfo> ParseHelpArguments(Type type)
+        {
+            Dictionary<string, PropertyInfo> properties = new Dictionary<string, PropertyInfo>();
+
+            foreach (PropertyInfo property in type.GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static))
+            {
+                // attempt to fetch the ArgumentAttribute of the property
+                CustomAttributeData attribute = property.CustomAttributes.Where(a => a.AttributeType.Name == typeof(ArgumentAttribute).Name).FirstOrDefault();
+
+                // if found, extract the Name property and add it to the dictionary
+                if (attribute != default(CustomAttributeData))
+                {
+                    string helpText = (string)attribute.ConstructorArguments[2].Value;
+
+                    if (!string.IsNullOrEmpty(helpText) && !properties.ContainsKey(helpText))
+                    {
+                        properties.Add(helpText, property);
+                    }
+                }
+            }
+
+            return properties;
         }
 
         /// <summary>
